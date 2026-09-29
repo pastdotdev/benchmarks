@@ -1,0 +1,66 @@
+{
+  "dataset": "BEAM",
+  "split": "10m",
+  "datasetRevision": "9b2096193fe74e2837e4713e483351e19817773c",
+  "conversations": 10,
+  "questions": 200,
+  "failedQuestions": 0,
+  "failedVerdicts": 0,
+  "microAverage": 0.8502916666666667,
+  "macroAverage": 0.8502916666666668,
+  "categories": {
+    "abstention": {
+      "questions": 20,
+      "mean": 1.0
+    },
+    "contradiction_resolution": {
+      "questions": 20,
+      "mean": 0.73125
+    },
+    "event_ordering": {
+      "questions": 20,
+      "mean": 1.0
+    },
+    "information_extraction": {
+      "questions": 20,
+      "mean": 0.6875
+    },
+    "instruction_following": {
+      "questions": 20,
+      "mean": 0.95
+    },
+    "knowledge_update": {
+      "questions": 20,
+      "mean": 0.925
+    },
+    "multi_session_reasoning": {
+      "questions": 20,
+      "mean": 0.2816666666666666
+    },
+    "preference_following": {
+      "questions": 20,
+      "mean": 1.0
+    },
+    "summarization": {
+      "questions": 20,
+      "mean": 0.99
+    },
+    "temporal_reasoning": {
+      "questions": 20,
+      "mean": 0.9375
+    }
+  },
+  "answerModel": "openai/gpt-5.6-luna",
+  "judgeModel": "openai/gpt-5.6-luna",
+  "reasoningEffort": "none",
+  "recall": {
+    "limit": 100,
+    "maxTokens": 8000
+  },
+  "prompts": {
+    "source": "https://fabric.so/p/beam-3VjBcqEVRofZyA5CeazeX",
+    "sha256": "584b672d957f3e6f75e96f881ec31da22e1039da1df5fbedb53dc6a9145cfc43"
+  },
+  "harnessVersion": "2",
+  "finishedAt": "2026-09-29T13:30:47.450300Z"
+}

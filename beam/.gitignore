@@ -1,0 +1,11 @@
+results/*
+!results/100k/
+!results/500k/
+!results/1m/
+!results/10m/
+results/100k/*
+results/500k/*
+results/1m/*
+results/10m/*
+!results/*/summary.json
+!results/*/results.jsonl

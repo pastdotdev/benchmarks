@@ -1,0 +1,17 @@
+__pycache__/
+.venv/
+
+# Local configuration, credentials, logs, and editor state.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+.python-version
+.DS_Store
+.aws/
+.codex/
+.agents/
+.vscode/
+.idea/

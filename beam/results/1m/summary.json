@@ -1,0 +1,66 @@
+{
+  "dataset": "BEAM",
+  "split": "1m",
+  "datasetRevision": "3205395e897e7318c7b094ef4e6047b9b82dbb03",
+  "conversations": 35,
+  "questions": 700,
+  "failedQuestions": 0,
+  "failedVerdicts": 0,
+  "microAverage": 0.9065034013605443,
+  "macroAverage": 0.9065034013605443,
+  "categories": {
+    "abstention": {
+      "questions": 70,
+      "mean": 0.9714285714285714
+    },
+    "contradiction_resolution": {
+      "questions": 70,
+      "mean": 0.7535714285714286
+    },
+    "event_ordering": {
+      "questions": 70,
+      "mean": 0.9980952380952383
+    },
+    "information_extraction": {
+      "questions": 70,
+      "mean": 0.8398469387755102
+    },
+    "instruction_following": {
+      "questions": 70,
+      "mean": 0.9642857142857143
+    },
+    "knowledge_update": {
+      "questions": 70,
+      "mean": 0.8571428571428571
+    },
+    "multi_session_reasoning": {
+      "questions": 70,
+      "mean": 0.7281632653061226
+    },
+    "preference_following": {
+      "questions": 70,
+      "mean": 0.9886904761904763
+    },
+    "summarization": {
+      "questions": 70,
+      "mean": 0.995952380952381
+    },
+    "temporal_reasoning": {
+      "questions": 70,
+      "mean": 0.9678571428571429
+    }
+  },
+  "answerModel": "openai/gpt-5.6-luna",
+  "judgeModel": "openai/gpt-5.6-luna",
+  "reasoningEffort": "none",
+  "recall": {
+    "limit": 100,
+    "maxTokens": 8000
+  },
+  "prompts": {
+    "source": "https://fabric.so/p/beam-3VjBcqEVRofZyA5CeazeX",
+    "sha256": "584b672d957f3e6f75e96f881ec31da22e1039da1df5fbedb53dc6a9145cfc43"
+  },
+  "harnessVersion": "2",
+  "finishedAt": "2026-09-29T14:29:58.676958Z"
+}
