@@ -1,0 +1,4 @@
+name: past
+version: 0.1.0
+description: "past.dev — source-traced memory: every completed turn is kept, and past.dev's recall comes before each turn."
+pip_dependencies: []

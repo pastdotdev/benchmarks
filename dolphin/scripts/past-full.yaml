@@ -1,0 +1,4 @@
+release: .
+output: tmp/past-dev-full
+adapter: past_harness:PastHarness
+options: {}
