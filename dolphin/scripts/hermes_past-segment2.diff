@@ -1,0 +1,64 @@
+--- hermes_past.py (05d028e4, recorded in run.json)
++++ hermes_past.py (0bd3efeb, rerun's last 440 tests)
+@@ -36,6 +36,7 @@
+ 
+ import hashlib
+ import json
++import re
+ import math
+ import os
+ import shutil
+@@ -69,6 +70,9 @@
+ ROOT = Path(harness.__file__).resolve().parents[1]
+ SPEC_PATH = ROOT / "examples/reference/hermes-builtin.json"
+ PLUGIN = Path("plugins/memory/past")
++# The toolsets DolphinBench's official Hermes runs gave the agent (their launch manifests): the
++# benchmark apps and memory, without hermes-cli's terminal, files and skills.
++BENCH_TOOLSETS = ["dolphinbench-apps", "memory", "session_search"]
+ DIFF_FLAGS = ["--binary", "--full-index", "--no-ext-diff", "--no-textconv", "--no-renames",
+               "--src-prefix=a/", "--dst-prefix=b/", "--unified=3"]
+ OPTIONS = {"source_env", "image_env", "base_url_env", "agent_api_url_env", "credit_usd_per_1000"}
+@@ -387,6 +391,13 @@
+     plugin = {name: sha256((source / PLUGIN / name).read_bytes()) for name in ("__init__.py", "plugin.yaml")}
+     return {"source_base": spec["source_base"], "patch_sha256": spec["patch_sha256"], "head": head,
+             "plugin": plugin}
++
++
++def plugin_recall_settings(source: Path) -> dict:
++    """The recall the agent's plugin asks past.dev for, read from the plugin itself."""
++    text = (source / PLUGIN / "__init__.py").read_text()
++    value = lambda name: int(re.search(rf"^{name} = ([0-9_]+)", text, re.M).group(1).replace("_", ""))
++    return {"limit": value("RECALL_LIMIT"), "maxTokens": value("RECALL_MAX_TOKENS")}
+ 
+ 
+ def docker_image_id(image: str) -> str:
+@@ -434,6 +445,8 @@
+             manifest = {"root": str(ROOT), "agent": self.agent, "launch": {"mock_mcp_python": self.app_python}}
+             config = _profile_config(job, manifest, {})
+             config["memory"]["provider"] = "past"
++            config["toolsets"] = list(BENCH_TOOLSETS)
++            config["platform_toolsets"] = {platform: list(BENCH_TOOLSETS) for platform in config["platform_toolsets"]}
+             soul = (ROOT / "harness/benchmark_soul.md").read_text().replace("{{persona_name}}", name)
+             self.generated_templates[persona] = {"config.yaml": yaml.safe_dump(config, sort_keys=False),
+                                                  "SOUL.md": soul}
+@@ -463,8 +476,9 @@
+                 "agent_api_url": self.agent_api_url,
+                 "ingestion": {"stored": "each completed Hermes turn: the message, with its date, local time and "
+                                         "author, and Hermes' reply", "items_per_push": self.past.options["ingest_batch"]},
+-                "recall": {**{k: past["memory"]["recall"][k] for k in ("limit", "maxTokens")},
+-                           "automatic": False, "tool": "past_recall", "queries_per_call": 1},
++                "recall": {**plugin_recall_settings(self.source),
++                           "automatic": False, "tool": "past_recall", "queries_per_call": 1,
++                           "result": "dated findings with their exact source excerpts, as text"},
+                 "credits": past["memory"]["credits"],
+                 "internal_models": past["memory"]["internal_models"],
+                 "credit_usd_per_1000": past["memory"]["credit_usd_per_1000"],
+@@ -613,7 +627,7 @@
+         values = {
+             **request.apps["env"], "HERMES_HOME": str(self.home),
+             "DOLPHINBENCH_CAPTURE_SUBMISSION": "1",
+-            "DOLPHINBENCH_HERMES_TOOLSETS": ",".join(TOOLSETS),
++            "DOLPHINBENCH_HERMES_TOOLSETS": ",".join(BENCH_TOOLSETS),
+             "DOLPHINBENCH_AGENT_IMAGE": self.image,
+             # The grader's endpoint is the runner's, never the agent's; the container launcher
+             # refuses a loopback address in it even though it does not pass it to the agent.
