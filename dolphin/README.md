@@ -1,0 +1,582 @@
+# DolphinBench on past.dev
+
+[DolphinBench](https://github.com/mem0ai/dolphinbench) is Mem0's benchmark of agent memory. It has
+three simulated users, each with about 500,000 tokens of dated history, and 600 tests (200 per
+user) in which an agent acts for the user through simulated apps such as email, calendar, chat,
+documents and code review. A test depends on something the user said earlier, and it is graded on
+what the agent does: deterministic checks on its app calls and their arguments, and a model judge
+for written content. A configuration first sends each user's whole history through its agent and
+memory, freezes the memory, and then runs that user's tests in fresh conversations.
+
+## Results
+
+Hermes Agent with GPT 5.6 Luna and past.dev as its memory passed **489 of 600** tests (81.5%,
+Wilson 95% interval 78.2% to 84.4%). In DolphinBench's official runs of the same agent and model,
+the other memories pass 355 to 424. past.dev ran self-hosted for these runs (Pilot v1.0.3 on the
+run's machine), not on the cloud API. Graded on the app server's own log of each call instead of the
+arguments the agent sent, it passes 488 (see [Records and grading](#records-and-grading)).
+
+The memory tasks, the 339 tests that expect an app action other than a document, carry the result:
+past.dev passed 278 of them, against 196 to 235 for the official rows, and 274 in a first test pass
+with different toolsets (see [How the Hermes result was produced](#how-the-hermes-result-was-produced)).
+That pass and the reported one differ mostly on document tasks.
+
+| Memory | Passed | Morgan | Alex | Riley | Cost | Median latency | Files |
+|---|---:|---:|---:|---:|---:|---:|---|
+| **past.dev** | **489 / 600** | 173 | 151 | 165 | $196.56 | 46.3 s | [Run](results/hermes-gpt-5.6-luna/) |
+| Mem0 | 424 / 600 | 156 | 132 | 136 | $96.21 | 37.7 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/mem0) |
+| Hindsight | 417 / 600 | 144 | 127 | 146 | $84.65 | 55.3 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/hindsight) |
+| Honcho | 411 / 600 | 144 | 120 | 147 | $142.85 | 44.7 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/honcho) |
+| Built-in | 394 / 600 | 131 | 111 | 152 | $61.48 | 44.4 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/builtin) |
+| Supermemory | 355 / 600 | 138 | 98 | 119 | $345.64 | 52.7 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/supermemory) |
+
+Each persona has 200 tests. Cost is the agent model plus memory processing, with grading left out,
+as in DolphinBench's `cost.json`. Latency is the median test's duration. The official rows are
+DolphinBench's own runs at commit `81cb6f8`; the past.dev row is our run of the same agent, outside
+DolphinBench's official results. [Disclosures](#disclosures) lists every way it differs from them,
+including an ingestion whose agent calls cost 3.2 times the official Built-in run's.
+
+Sources: for past.dev, `passed` and `latency_seconds` in
+`results/hermes-gpt-5.6-luna/<persona>/tests.json` and `results/hermes-gpt-5.6-luna/cost.json` in
+this folder, built from the grade files in `exp-toolsets-600/grades/` (archive 1) and the cost logs
+under [Costs](#costs). For the official rows, the same fields in DolphinBench's
+`results/hermes/gpt-5.6-luna/<memory>/<persona>/tests.json` and `cost.json`.
+
+Matched test by test, past.dev passes more of the tests where it and an official row disagree: 108
+to 43 against Mem0, 124 to 52 against Hindsight, 114 to 36 against Honcho, 128 to 33 against
+Built-in and 161 to 27 against Supermemory (exact McNemar p below 1.3e-7 for each). Each side is
+a single run, and single runs vary: between our two test passes on the same memory, which also
+differed in toolsets, 58 memory tasks changed outcome, 31 to a pass and 27 to a fail.
+
+### Memory and document tasks
+
+A document task asks the agent to write a document: its `expected_tool_calls` in DolphinBench's
+`tests/<persona>/<id>.yaml` include `create_doc`. There are 261, most of them Riley's. The other 339
+tests, called memory tasks here, expect other app actions, such as an email, a calendar event or an
+order.
+
+| | Memory tasks | Morgan | Alex | Riley | Document tasks | Morgan | Alex | Riley |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Tests | 339 | 149 | 151 | 39 | 261 | 51 | 49 | 161 |
+| **past.dev** | **278** | 130 | 114 | 34 | **211** | 43 | 37 | 131 |
+| Mem0 | 235 | 115 | 97 | 23 | 189 | 41 | 35 | 113 |
+| Hindsight | 234 | 106 | 98 | 30 | 183 | 38 | 29 | 116 |
+| Honcho | 227 | 110 | 90 | 27 | 184 | 34 | 30 | 120 |
+| Built-in | 202 | 92 | 81 | 29 | 192 | 39 | 30 | 123 |
+| Supermemory | 196 | 102 | 71 | 23 | 159 | 36 | 27 | 96 |
+
+past.dev passes 278 of 339 memory tasks, against 196 to 235 for the official rows, and 211 of 261
+document tasks, against 159 to 192.
+
+Sources: the `tests.json` files above, split by `expected_tool_calls` in DolphinBench's
+`tests/<persona>/<id>.yaml` at commit `81cb6f8`.
+
+### past.dev's own agent
+
+past.dev's own minimal agent with the same model passed **520 of 600** (86.7%, Wilson 95%
+interval 83.7% to 89.2%) for $15.77, with a median test latency of 9.8 s. It is a different agent
+from Hermes, so it is reported as a separate configuration.
+
+| Configuration | Passed | Morgan | Alex | Riley | Memory tasks | Document tasks | Cost | Median latency | Files |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| Own agent + GPT 5.6 Luna + past.dev | **520 / 600** | 182 | 168 | 170 | 293 / 339 | 227 / 261 | $15.77 | 9.8 s | [Run](results/own-agent-gpt-5.6-luna/) |
+
+- **Agent.** `past_harness.py` is a tool-calling loop over OpenRouter's chat completions
+  (`model.py`): `openai/gpt-5.6-luna` at high reasoning, at most 60 turns, on OpenRouter's default
+  provider routing. Its prompt is DolphinBench's assistant identity (`harness/benchmark_soul.md`)
+  without the agent's name, followed by a paragraph about past.dev.
+- **Memory.** During ingestion the model replies to each history message with reasoning off and no
+  tools. past.dev stores the user's message with its date, local time and author, 100 to a push,
+  and the replies stay out of memory. At the freeze the projects held 17,448 memories for Morgan,
+  19,299 for Alex and 21,595 for Riley.
+- **Tests.** past.dev's recall for the request comes before it as a system message
+  (`memory_at_start` in the records), and the agent can recall again with `past_recall`.
+- **past.dev.** The cloud API.
+- **Harness version.** Ingestion and Morgan's tests 001 to 099 ran `past_harness.py` 1.0. From
+  Morgan's test 100 on, version 1.1 keeps a recall query's first 1,000 characters, after past.dev's
+  cloud refused that test's recall, a query over 1,000 characters. This folder's file is 1.2, the
+  version the Hermes run used: it adds list-price credits for a deployment that bills nothing, a
+  JSON-lines reader that splits on newlines only, and a freeze that stops on a push past.dev kept
+  no memory from (this folder's `past_client.py` adds the `explain` call that check uses). The own
+  agent's freeze therefore did not check whether every push gave memories, and that cannot be
+  checked now without calling past.dev. `past/harness-version-change.json` in archive 7 records the
+  1.0 and 1.1 code hashes.
+- **Judge.** As for the Hermes run, through `judge_relay.py`, pinned to OpenRouter's Azure
+  provider. OpenRouter's extra judge message fields (`refusal` and `reasoning` in 602 judge
+  messages, `reasoning_details` in 153) were removed from 576 of the 600 grade files before
+  packaging, with nothing else in them changed. The unstripped files are not in the archives.
+- **Submission.** The records are those of the run's `submission.zip`, which DolphinBench's
+  validator code accepts at 520 / 600 and $15.774289
+  ([Own-agent submission](#own-agent-submission)). We submitted it to DolphinBench's site.
+- **Cost.** $15.774289: ingestion $10.735742 (model $2.468942 plus 27,556 past.dev credits,
+  $8.2668) and tests $5.038547.
+
+Sources: `results/own-agent-gpt-5.6-luna/` in this folder, and `past-dev-full/submission.zip` and
+`past-dev-full/grades/` in archive 7.
+
+## How the Hermes result was produced
+
+The result pairs the original run's ingestion and frozen memory with a second test pass. The
+original run ingested every history message and ran the tests once; the tests then ran again on the
+same memory, with the three toolsets DolphinBench's official Built-in run gives Hermes in its test
+phase.
+
+### Setup
+
+- **Agent.** Hermes Agent at `NousResearch/hermes-agent` commit `935c1e8`, with DolphinBench's
+  evaluation patch (`examples/reference/hermes-evaluation.patch`, SHA-256 `24e3d352…`) and
+  past.dev's memory plugin (`plugins/memory/past` at commit `2dc4374` of a past.dev branch of
+  Hermes, `__init__.py` SHA-256 `422df786…`, copied in [`hermes-plugin/past/`](hermes-plugin/past)). It ran in agent image
+  `sha256:bd8aafd99ba172e1842b39bbc79de23d0d61b3cafa6ea1a02e9423df74cdba78`, built with
+  DolphinBench's image builder, with the two packages Hermes otherwise installs on first use
+  (`boto3` and `edge-tts`) added. The profile is DolphinBench's Hermes + Luna reference profile with
+  `memory.provider: past`.
+- **Model.** GPT 5.6 Luna at high reasoning, at most 60 turns, through `agent_relay.py`.
+- **Memory.** Each completed Hermes turn becomes two past.dev data points, the user's message and
+  Hermes' reply, with the message's date, local time and author, 100 to a push. The agent recalls
+  through the plugin's `past_recall` tool: one query per call, up to 100 results within 8,000
+  tokens. past.dev ran on the same machine: Pilot v1.0.3, past.dev's self-hosted deployment, with
+  Turbopuffer and a hosted Hugging Face entailment model.
+- **Judge.** GPT 5.6 Sol at medium reasoning with DolphinBench's fixed settings (an 8,000-token
+  limit and JSON responses), through `judge_relay.py`.
+
+### Original run
+
+The original run (`hermes-past-full`) started on 2026-10-02 at 16:14 CDT. Its ingestion sent all
+13,539 history messages through Hermes, one turn each, the three personas in parallel
+(`ingest_parallel.py`), with the toolsets of DolphinBench's public Hermes adapter
+(`harness.adapters.hermes.TOOLSETS`: `hermes-cli`, `dolphinbench-apps`, `memory`,
+`session_search`). Hermes sent 72,448 model calls to `agent_relay.py`, and the ingestion finished
+on 2026-10-05 at 20:18 CDT. At the freeze the projects held 28,589 memories for Morgan, 31,027 for
+Alex and 38,818 for Riley.
+
+Its first test pass used the same toolsets, finished on 2026-10-06 at 00:22 CDT and passed 363 of
+600 (Morgan 133, Alex 132, Riley 98): 274 of 339 memory tasks and 89 of 261 document tasks.
+`hermes-cli` gives Hermes a terminal, file tools and code execution, and on document tasks the agent
+often saved the document as a local file. 159 of the 261 document tasks did not call `create_doc`,
+and 96 of those used `write_file`, `patch`, `terminal` or `execute_code`.
+
+### Rerun with the official toolsets
+
+DolphinBench's own reference code gives Hermes three toolsets: `MATRIX_TOOLSETS =
+["dolphinbench-apps", "memory", "session_search"]` (`reference/artifacts.py`, line 44, at commit
+`81cb6f8`), which the official memory rows extend with their own (`[*MATRIX_TOOLSETS, "hindsight"]`
+and so on). The launch manifests of its official Hermes + GPT 5.6 Luna Built-in run
+(`builtin-configuration.zip`, listed in DolphinBench's `website/content/official-evidence.json`)
+give the agent the same three in the test phase. The public adapter adds `hermes-cli`, so the first
+pass did not match the official setup. The 600 tests ran again with those three, on an APFS copy of the finished run
+(`exp-toolsets-600`). Each persona's frozen Hermes profile had its `toolsets` and
+`platform_toolsets` set to the three, and `scripts/run_subset.py`, launched by
+`scripts/run_toolsets_600.sh`, set DolphinBench's `harness.adapters.hermes.TOOLSETS` to the same
+three and ran the tests three at a time. The rerun recalled from the original run's past.dev
+projects, and its ingestion records, checkpoints and push receipts are byte-identical copies of the
+original run's.
+
+In every rerun test the model was offered `past_recall` and Hermes' tool search, through which it
+reached the app tools and `session_search`. No `hermes-cli` tool appears in any rerun test's tool
+list or calls, and 251 of the 261 document tasks called `create_doc`. The rerun ran on 2026-10-06
+from 09:45 to 20:04 CDT, with a stop from 10:31 to 17:49 while Docker Desktop was frozen, and passed
+489 of 600. Against the first pass, 128 document tasks went from fail to pass and 6 from pass to
+fail; memory tasks moved both ways, 31 to a pass and 27 to a fail.
+
+Ingestion kept the public adapter's toolsets. The memory behind the result is the original run's,
+built by Hermes with `hermes-cli`: 5,267 of its 13,539 turns (38.9%) called a `hermes-cli` tool.
+
+## Disclosures
+
+Each item below is a way this run differs from DolphinBench's official Hermes + GPT 5.6 Luna runs
+or their procedure, with its count.
+
+### Agent and tools
+
+- **Ingestion toolsets.** Ingestion used the public adapter's four toolsets, `hermes-cli`
+  included. 5,267 of 13,539 turns (38.9%) called a `hermes-cli` tool, most often `skill_view` (4,310
+  turns), `execute_code` (1,057), `terminal` (873), `clarify` (500), `web_extract` (283),
+  `search_files` (252) and `web_search` (238). The ingestion's agent calls cost $168.73, 3.2 times
+  the official Built-in run's $53.32 (the ingestion totals in its `cost-calculation.json`, inside
+  `builtin-configuration.zip`). The official manifests at hand cover the test phase only, so the
+  toolsets the official runs ingested with are unknown here.
+- **Web access during ingestion.** With `hermes-cli`, Hermes could search and read the web while it
+  ingested. Every `web_search` and `web_extract` call in the ingestion traces (archives 4 to 6),
+  1,336 calls with their results, was scanned for `dolphin`, `mem0`, `github`, `huggingface` and
+  `benchmark`. One reached DolphinBench: in Alex's ingestion turn dated 2024-05-08 (trace
+  `20261003_123218_4fd609`), a search for "Park Slope quiet cafe 7th Avenue cortado crossword"
+  returned dolphinbench.ai's page for Alex's test 072, with the test's request and grading criteria.
+  The search terms came from the turn's earlier `past_recall`, which had already led Hermes to 7th
+  Avenue, and its reply, which went into past.dev, names a café on 7th Avenue and cortados and
+  nothing else from the page. Test 072 passed in both test passes; without it the reported result
+  is 488 of 600. The other matches were documentation pages on GitHub and pages using "benchmark"
+  in another sense.
+- **Two test passes.** The reported tests are a second pass on the same frozen memory. The first
+  pass, with `hermes-cli`, passed 363 of 600.
+- **Setup chosen on the same tests.** Before the rerun, side experiments ran on the same frozen
+  memory. Eight variants ran 10 document tasks that had all failed in the first pass: the official
+  three toolsets passed 8 of the 10, and the seven others passed 0 to 4. A variant with a 37-byte
+  `SOUL.md`, still with `hermes-cli`, ran 62 of Morgan's tests, passed 44 and was stopped. The
+  official test toolsets were chosen after these, with no held-out tests. The final run passes 7 of
+  those 10 document tasks and 56 of those 62 Morgan tests. A ninth variant on the 10 document tasks,
+  started during the rerun's stop, crashed before grading.
+- **Adapter version.** `hermes_past.py` in this folder is the version both runs' `run.json` record
+  (SHA-256 `05d028e4…`). It ran the ingestion, the first pass and the rerun's first 160 tests, all
+  Morgan's. The rerun's other 440 tests ran with a later edit of it (`0bd3efeb…`), given as
+  [`scripts/hermes_past-segment2.diff`](scripts/hermes_past-segment2.diff): it adds a
+  `BENCH_TOOLSETS` constant with the three test toolsets, gives it to new profiles and to every
+  turn, and reads the recall settings from the plugin. The model saw the same tool lists in both
+  segments, and Morgan's system prompts differ only in the profile name. The rerun skipped the
+  comparison with the run's identity file (see [Memory](#memory)), which would otherwise have
+  stopped it on the changed file.
+- **Model route.** Hermes kept the reference profile's `azure-foundry` provider, with its base URL
+  set to `agent_relay.py`, which sent every call to OpenRouter, pinned to its Azure provider with no
+  fallback. The official runs called an Azure Foundry endpoint directly (the base URL in the
+  Built-in run's launch manifests). Model and settings are the same: GPT 5.6 Luna, high reasoning,
+  at most 60 turns. The relay also ends a turn whose answer came back empty (see Replyless turns).
+- **Judge route.** The judge's calls went through OpenRouter, pinned to Azure (`judge_relay.py`),
+  with DolphinBench's fixed model and settings. The relay logs report Azure for all 593 judge calls
+  of the rerun and all 437 of the first pass. The official runs call an Azure deployment directly.
+
+### Memory
+
+- **Local past.dev.** The Hermes runs used Pilot v1.0.3 on the same machine, with Turbopuffer and a
+  hosted Hugging Face entailment model; the own agent used the cloud API. 272 pushes carried 27,049
+  data points: 13,539 messages and 13,510 replies. Pilot bills nothing, so memory is priced at
+  past.dev's cloud list price: one credit per 350 bytes of each data point, at least one, 67,003
+  credits at $0.30 per 1,000, $20.10. Recall is included, as on the Flex plan.
+- **Pushes without memories.** The hosted entailment service failed for a period during ingestion,
+  and past.dev completed 30 of Alex's 101 pushes (72 to 101) and 29 of Riley's 103 (75 to 103)
+  without extracting a memory. These cover the latest part of each history: 1,459 of Alex's 5,011
+  messages (29.1%, ids 3553 to 5011) and 1,426 of Riley's 5,128 (27.8%, ids 3703 to 5128). The run
+  froze these two projects with `turn_recovery.freeze_disclosing`, which lists the pushes as
+  `pushesWithoutMemories` in the checkpoint. All 68 of Morgan's pushes gave memories. This works
+  against past.dev: no memory was extracted from those messages, so the tests that depend on the
+  latest part of Alex's and Riley's histories ran with less memory than past.dev builds, and the
+  reported score is conservative.
+- **Rerun with those memories.** After the runs, the 59 pushes were extracted again on the same
+  Pilot: each was set back to Degraded and retried through the API (`scripts/reextract.py`, push
+  lists `scripts/reextract-alex.txt` and `scripts/reextract-riley.txt`). That added 13,054 derived
+  artifacts to Alex's project and 12,039 to Riley's. Their 400 tests then ran again on a clone of
+  the second pass, with the same launcher, adapter, toolsets and judge
+  (`scripts/run_reextract_ar.sh`). Alex scored 148 (151 before) and Riley 169 (165 before);
+  Morgan's 173 was not rerun. The total is 490 / 600 (81.7%), against 489 (81.5%). Behind the net
+  +1, 35 tests went from fail to pass and 34 from pass to fail
+  (`results/hermes-gpt-5.6-luna/entailment-rerun.json`), so the missing memories made no
+  measurable difference. The headline stays the reported pass.
+- **Frozen memory not rechecked.** The freeze recorded 28,589 memories for Morgan, 31,027 for Alex
+  and 38,818 for Riley. The rerun skipped the adapter's `verify_checkpoint`, which compares the
+  frozen profiles' hashes and each project's memory count and request log with the checkpoint,
+  because the profiles had been edited. It also skipped the comparison with the run's identity
+  file, because the copy's identity names the copy's own paths. A later count, outside the
+  evidence, showed 38,837 memories for Riley and unchanged counts for Morgan and Alex. Riley's rerun
+  tests ran from 19:02 to 20:03 CDT, after Pilot restarted at about 17:48, so they may have seen up
+  to 19 more memories than the first pass.
+
+### Records and grading
+
+- **App-call reconciliation.** DolphinBench's mock app server logs each call with its own defaults
+  filled in and ignores arguments it does not know, so its log can differ from the call the agent
+  sent, and DolphinBench's checks then find no matching call in the conversation. Hermes also drops
+  a duplicated parallel read-only call from its conversation after the server ran it. App calls were
+  reconciled to what the agent sent: in ingestion, 1,570 records (Morgan 178, Alex 769, Riley 623),
+  with 2,089 calls set to the agent's arguments and 5 read-only calls removed; in the first pass,
+  256 entries in 195 tests; in the rerun, 231 calls in 183 of 600 tests (Morgan 82, Alex 79,
+  Riley 22), 149 of which passed. `hermes/app-call-defaults.jsonl` lists every change, and
+  `hermes/app-call-originals/` keeps the changed ingestion records' app calls as first recorded. The
+  pairing is imperfect: in Alex's tests 006, 022 and 157, a logged `list_open_prs` call with status
+  `closed` was paired with an agent call that sent no status, and no check grades that tool. None
+  of the rerun's 231 calls carries an argument the server ignored: 203 differ only by fields the
+  server added with its own defaults, such as `"cc": null`, and 28 are `list_open_prs` calls whose
+  `status` the agent sent as null and the server logged as `open` (`closed` in Alex's 157).
+- **Regrade on the server's log.** All 183 reconciled rerun tests were graded again with each call
+  as the server logged it ([`scripts/regrade_server_logged.py`](scripts/regrade_server_logged.py)):
+  62 replay their recorded judge verdicts, and 121, whose judge prompts now carry the server's
+  fields, went to the official judge again ($0.65). 148 pass, against 149 reported, so the result
+  on the server's log is 488 of 600. The one change is Alex's 055: its email is the same, and its
+  judge, given the server's `"cc": null` in the action's arguments, failed it.
+  [`results/hermes-gpt-5.6-luna/server-logged-regrade.json`](results/hermes-gpt-5.6-luna/server-logged-regrade.json)
+  lists every test with both verdicts.
+- **Attempts run again.** Attempts that could not be recorded were set aside under
+  `hermes/filtered/`, their cost counted, and run again. Ingestion: 78 attempts on 70 of 13,539
+  turns (24 recording failures, 13 rewritten conversations, 13 that returned a different user
+  message or conversation boundary, 11 interruptions, 10 content-filter stops on 9 turns, 4 full
+  disks and 3 Hermes timeouts). First pass: 11 attempts on 11 tests, 4 of them set aside by hand
+  after grading could not run. Rerun: 9 attempts on 8 tests (3 Docker failures when another run's
+  setup removed the agent containers, 3 interrupted when Docker Desktop froze, and 3 recording
+  failures in Alex's tests 035, 080 and 155). 7 of the 8 passed on their rerun; counting all 8 as
+  failures gives 482 of 600. Each of the 600 final test records comes from a single Hermes
+  attempt.
+- **Continuation prompt.** 14 set-aside ingestion attempts (Morgan 10, Riley 4) end at Hermes'
+  own continuation prompt (`[System: Continue now.`). All ran again, and no final ingestion record
+  or test trace contains the prompt, so no turn was cut at it.
+- **Replyless turns.** In 29 ingestion turns (Morgan 24, Alex 2, Riley 3) the model's answer after
+  tool calls came back empty. Hermes takes an empty answer for a broken response and sends the same
+  request again, up to eight times; `agent_relay.py` answers such a repeat with a 400
+  `empty_completion` error without calling the model (29 of the 72,448 ingestion calls), so the
+  turn ends there. The 29 turns were recorded as complete and sent to past.dev with the user's
+  message and no reply (`past/replyless-turns.jsonl`). No test turn ended this way.
+- **Judge message fields.** OpenRouter adds `refusal`, `reasoning` and `reasoning_details` to the
+  judge's message, and DolphinBench's packager refuses them. They were removed from the first
+  pass's 408 judged grade files (originals in `hermes/grades-before-strip.tar.gz`). 563 of the
+  rerun's 600 grade files still carry them: `refusal` and `reasoning` in 592 judge messages,
+  `reasoning_details` in 185. The records in this folder keep verdicts and checks only, and the
+  replay in [Scores](#scores) drops the fields in memory.
+- **No submission ZIP.** The Hermes ingestion rows come to 1,341.5 MiB of JSON (1,059.4 MiB without
+  system messages), over DolphinBench's 512 MiB limit per file, so the run's package stage stopped
+  and the result cannot be uploaded to DolphinBench's site. Its grades were checked with the replay
+  under [Scores](#scores).
+
+### Cost and latency
+
+| | Ingestion | Tests | Total |
+|---|---:|---:|---:|
+| Agent model, as OpenRouter reported | $168.73 | $7.73 | $176.46 |
+| past.dev, 67,003 credits at list price | $20.10 | $0.00 | $20.10 |
+| Total | $188.83 | $7.73 | $196.56 |
+
+Sources: the relay logs and push receipts listed under [Costs](#costs), in archives 1 and 2.
+
+- **Cost method.** Agent cost is what OpenRouter reported for every call Hermes sent through the
+  relay, set-aside attempts included. The official `cost.json` totals price recorded tokens at
+  DolphinBench's saved rates. 1,206 of 72,448 ingestion calls, 120 of 5,180 first-pass calls and
+  22 of 4,039 rerun calls came back without a cost and count as zero; at the mean priced call they
+  would add about $2.86, $0.28 and $0.04. One ingestion call never ended.
+- **Test phase.** The rerun's $7.73 of agent calls compares with $3.23 (Mem0) to $8.05 (Built-in)
+  in the official runs, summed from their per-test `cost_usd`. Most of the cost gap is ingestion.
+- **Left out.** Grading, as in DolphinBench's cost files: $4.09 for the rerun's 593 judge calls.
+  The first pass: $11.89 of agent calls and $2.60 for its 437 judge calls. Both passes and both
+  judges come to $215.14, side experiments and aborted runs left out.
+- **Latency.** Latency is DolphinBench's per-test duration on one Mac running three tests at a time
+  under Docker Desktop: median 46.3 s and p95 69.0 s in the rerun, median 58.5 s and p95 103.3 s in
+  the first pass.
+
+## Files
+
+### Records
+
+`results/` has one folder per configuration, in the layout of DolphinBench's official run records
+(`results/<harness>/<model>/<memory>/` in its repository):
+
+| Path | Contents |
+|---|---|
+| `results/hermes-gpt-5.6-luna/` | The reported Hermes result: the rerun's tests on the original run's ingestion |
+| `results/own-agent-gpt-5.6-luna/` | The own agent's result, from its submission ZIP |
+| `<run>/README.md` | Score, cost and latency, by persona |
+| `<run>/configuration.json` | Harness, model, memory and runtime settings |
+| `<run>/cost.json` | Agent and memory cost, by persona |
+| `<run>/<persona>/README.md` | Each test's result, latency and agent call cost |
+| `<run>/<persona>/ingestion.json` | The agent's reply to each history message |
+| `<run>/<persona>/tests.json` | Each test's request, memory at the start, memory calls, app calls and results, answer, grading checks, latency and cost |
+
+They were written with DolphinBench's `website/scripts/build_public_run_records.py`, with
+`past_recall` added to the memory tools it recognizes.
+
+### Evidence archives
+
+The raw evidence is in seven archives attached to this repository's
+[GitHub Release](https://github.com/pastdotdev/benchmarks/releases) for DolphinBench, next to
+`MANIFEST.txt`, which describes every folder inside them. Member paths start with the folder names
+the runs and their relays wrote under `tmp/`, so unpacking into a DolphinBench checkout's `tmp/`
+recreates those folders, and archives 2 to 6 together rebuild the original run's folder apart from
+what `MANIFEST.txt` lists as left out:
+
+```bash
+zstd -dc --long=27 FILE.tar.zst | tar -xf -
+```
+
+| # | Archive | Contents | Size |
+|---:|---|---|---:|
+| 1 | `dolphinbench-hermes-past-toolsets-600.tar.zst` | The reported Hermes result (`exp-toolsets-600`, 489 / 600): test records, grades, Hermes test traces, set-aside attempts, app-call changes, relay logs and the rerun's log | 12.0 MiB |
+| 2 | `dolphinbench-hermes-past-full-tests-and-state.tar.zst` | The original run (`hermes-past-full`): first-pass records and grades (363 / 600), freeze checkpoints, push receipts, the turns sent to past.dev, set-aside attempts, relay logs and the run's log | 41.8 MiB |
+| 3 | `dolphinbench-hermes-past-full-ingestion-records.tar.zst` | The original run's 13,539 ingestion records, used by both test passes | 375.0 MiB |
+| 4 | `dolphinbench-hermes-past-full-ingestion-traces-alex.tar.zst` | Hermes ingestion traces, Alex | 591.9 MiB |
+| 5 | `dolphinbench-hermes-past-full-ingestion-traces-morgan.tar.zst` | Hermes ingestion traces, Morgan | 291.7 MiB |
+| 6 | `dolphinbench-hermes-past-full-ingestion-traces-riley.tar.zst` | Hermes ingestion traces, Riley | 604.7 MiB |
+| 7 | `dolphinbench-past-dev-full.tar.zst` | The own agent's run (`past-dev-full`, 520 / 600), with its `submission.zip` | 26.5 MiB |
+
+SHA-256, as in `MANIFEST.txt`:
+
+```text
+6376585d8dd28f2cdbe42bb5aa370a6affc60463c646b6df195c451a32085e49  dolphinbench-hermes-past-toolsets-600.tar.zst
+f88f0843c74f90c35c8559d9aef56e9234930d6f88126349d1c93109941621df  dolphinbench-hermes-past-full-tests-and-state.tar.zst
+dc80920053ddda7a28652d29c59ee54824133efddabcaa0384c4b99fbf94ebf8  dolphinbench-hermes-past-full-ingestion-records.tar.zst
+2a96b45dc976003b826a6183ff98898920d7b349809d3757e2bc1d77d05ad13e  dolphinbench-hermes-past-full-ingestion-traces-alex.tar.zst
+b8b86cc636a465298a1414343ae1eae99f4167cc8c033d4862f1f9963afe7b74  dolphinbench-hermes-past-full-ingestion-traces-morgan.tar.zst
+b67296531005fc7fae120d9116a6e0d3317040d0b519a1774514b3bfa8f90c7b  dolphinbench-hermes-past-full-ingestion-traces-riley.tar.zst
+ddcc9086b3f3c90f5a48b8bd249b1371bacde26cebccaffdacb57b32d134dbc4  dolphinbench-past-dev-full.tar.zst
+```
+
+The archives leave out the Hermes profiles, which hold the agent's past.dev project keys, the key
+files and the mock app server's state. `MANIFEST.txt` lists everything left out.
+
+### Code
+
+The files stand as they were when the rerun ended, except `hermes_past.py`, which is the version
+the runs' identity files record ([Disclosures](#agent-and-tools) gives the later edit), and [past.dev's own agent](#pastdevs-own-agent) where
+that run used `past_harness.py` 1.0 and 1.1. `turn_recovery.py`, `ingest_parallel.py` and
+`evaluate_parallel.py` are not in the runs' identity files, and they changed while the original run
+was being resumed: `ingest_parallel.py` last at 19:16 CDT on 2026-10-05, during the ingestion,
+`evaluate_parallel.py` at 20:28 CDT that day, during the first pass, and `turn_recovery.py` at 00:27
+CDT on 2026-10-06, after it. Earlier parts of the original run ran earlier versions, which this
+folder does not include; the rerun ran the `turn_recovery.py` here.
+
+| File | What it does |
+|---|---|
+| `hermes_past.py` | The Hermes + past.dev adapter: DolphinBench's Hermes adapter with past.dev's plugin, pushes, freeze, identity and cost |
+| `past_harness.py` | The own agent, as the runner's five methods; also past.dev's projects and pushes for `hermes_past.py` |
+| `past_client.py` | Every past.dev API call |
+| `model.py` | The own agent's model calls through OpenRouter |
+| `agent_relay.py` | Sends Hermes' model calls to OpenRouter's Azure provider and logs each call's cost |
+| `judge_relay.py` | Sends DolphinBench's judge calls to OpenRouter's Azure provider and logs each call's cost |
+| `ingest_parallel.py` | The ingest stage with the three personas at once (Hermes adapter only) |
+| `evaluate_parallel.py` | The evaluate stage with several tests at once |
+| `turn_recovery.py` | Runs again the turns Hermes could not complete, reconciles app calls, and freezes with the pushes without memories listed |
+| `requirements.txt` | The Python dependency beyond DolphinBench's own |
+| `hermes-plugin/past/` | past.dev's Hermes memory plugin as the runs used it (commit `2dc4374`): the `past_recall` tool and the turn spool |
+| `scripts/` | The run scripts and run files, with this machine's paths replaced by placeholders, and `hermes_past-segment2.diff` ([scripts/README.md](scripts/README.md)) |
+| `NOTICE.md` | Credits for DolphinBench and Hermes Agent |
+
+## Check the results
+
+### Scores
+
+A test passes when its grade has at least one check and every check passed, as in DolphinBench's
+`graders/mechanical.py`. From the folder the archives unpack into:
+
+```bash
+python3 - exp-toolsets-600 <<'EOF'
+import json, sys
+from pathlib import Path
+run, total = Path(sys.argv[1]), 0
+for persona in ("morgan", "alex", "riley"):
+    paths = sorted((run / "grades" / persona).glob("*.json"))
+    grades = [json.loads(p.read_text())["checks"] for p in paths]
+    passed = sum(1 for checks in grades if checks and all(c["passed"] for c in checks))
+    print(persona, passed, "of", len(grades))
+    total += passed
+print("total", total)
+EOF
+```
+
+It prints 173, 151 and 165, 489 in all. With `hermes-past-full` (archive 2) it prints 363, and
+with `past-dev-full` (archive 7) 520. For the memory and document split, a test is a document task
+when its `expected_tool_calls` in DolphinBench's `tests/<persona>/<id>.yaml` include `create_doc`.
+
+We also replayed every rerun grade through DolphinBench's grader
+(`graders.mechanical.grade_tool_trace`) with its recorded judge answers
+(`graders.judge_recording.replay_judge`), the check DolphinBench's validator applies to a
+submission, with the relay-only fields dropped in memory. All 600 give their saved verdicts, 489
+passes with no error and no mismatch, and every test record equals the evidence the adapter
+returned (`tests/<persona>/<id>.returned`). The `tests.json` files in this folder hold the same
+verdicts.
+
+### Own-agent submission
+
+From a DolphinBench checkout at commit `81cb6f8` with its requirements installed, DolphinBench's
+validator code checks the ZIP with no model or network call:
+
+```bash
+python - /path/to/past-dev-full/submission.zip <<'EOF'
+import json, sys
+from pathlib import Path
+from harness.submission import read_release, read_zip, validate
+pricing = json.loads(Path("pricing/latest.json").read_bytes())
+summary = validate(*read_zip(Path(sys.argv[1])), read_release(Path(".")), pricing=pricing)
+print(json.dumps(summary, indent=1))
+EOF
+```
+
+These are the calls of DolphinBench's site validator (`website/api/submission_validator.py`). The
+summary shows `"passes": 520` and `"total_cost_usd": 15.774289`; on the machine that ran it, the
+check takes about 8 seconds and 1.4 GiB of memory. The ZIP's SHA-256 is
+`ec59d4bfc153239c2142e1ea6f50ea2c36812b4d09a4cfb3518038244c9e3933`.
+
+### Costs
+
+- **Agent.** The sum of `cost_usd` over the `end` events in `agent-relay.jsonl`, by tag prefix:
+  `hermes-past-full.ingestion.` gives $168.729973 over 72,448 calls (archive 2), and
+  `exp-toolsets-600.` gives $7.725497 over 4,039 calls (archive 1). The rerun's log also holds 62
+  calls of a side experiment, tagged `exp-doc-nolisting.`, which that prefix leaves out. The rerun's
+  per-attempt files in `hermes/costs/tests/` agree with the log for all 600 tests.
+- **Memory.** The sum of `listCredits` in `past/receipts/<persona>.json`: 67,003 credits (16,441,
+  24,135 and 26,427 for Morgan, Alex and Riley).
+- **Judge.** The sum of `cost_usd` in `judge-relay.jsonl`: $4.093833 over 593 calls for the rerun
+  (archive 1) and $2.600145 over 437 calls for the first pass (archive 2).
+
+## Run it
+
+Both configurations run from a DolphinBench checkout at commit `81cb6f8`, with this folder on
+`PYTHONPATH`. The commands below assume this repository is cloned next to it as `benchmarks`.
+
+### Own agent
+
+You need a past.dev organization key and an OpenRouter key.
+
+```bash
+git clone https://github.com/mem0ai/dolphinbench.git && cd dolphinbench
+git checkout 81cb6f8
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt -r ../benchmarks/dolphin/requirements.txt
+cp ../benchmarks/dolphin/scripts/past-full.yaml .
+export PYTHONPATH=../benchmarks/dolphin
+export PAST_API_URL=... PAST_MANAGEMENT_KEY=... OPENROUTER_API_KEY=...
+export AZURE_OPENAI_API_KEY=... AZURE_OPENAI_ENDPOINT=...
+python ../benchmarks/dolphin/judge_relay.py &
+
+python -m harness.runner prepare --config past-full.yaml       # checks the setup; no paid call
+python -m harness.runner ingest --config past-full.yaml --confirm-paid-calls
+python -m harness.runner evaluate --config past-full.yaml --confirm-paid-calls
+python -m harness.runner package --config past-full.yaml       # tmp/past-dev-full/submission.zip
+```
+
+| Variable | What it holds |
+|---|---|
+| `PAST_API_URL` | past.dev's API address |
+| `PAST_MANAGEMENT_KEY` | A past.dev organization key (Settings › Organization key) |
+| `OPENROUTER_API_KEY` | An OpenRouter key, for the agent and the judge relay |
+| `AZURE_OPENAI_API_KEY` | A local password you choose, which DolphinBench's runner sends to `judge_relay.py` in place of an Azure key |
+| `AZURE_OPENAI_ENDPOINT` | `judge_relay.py`'s address (it listens on 127.0.0.1, port 8765 unless `JUDGE_RELAY_PORT` is set) |
+
+The harness creates one project per persona for each run, named `dolphinbench-<persona>-<run tag>`,
+and does not delete them. Run the same command again to resume; the runner never repeats a
+completed interaction. A changed model, option or code file needs a new `output` folder.
+
+### Hermes
+
+The Hermes configuration also needs Docker, a Hermes checkout with past.dev's plugin, and a
+past.dev deployment the agent's container can reach.
+
+- **Hermes.** `NousResearch/hermes-agent` at `935c1e8`, DolphinBench's
+  `examples/reference/hermes-evaluation.patch`, and past.dev's plugin in `plugins/memory/past`. Copy
+  [`hermes-plugin/past/`](hermes-plugin/past) to `plugins/memory/past`: its two files match the hashes
+  `run.json` records (`__init__.py` `422df786…`, `plugin.yaml` `4d00b7e8…`, commit `2dc4374`).
+- **Image.** `python hermes_past.py build-image --source <hermes checkout> --memory builtin` builds
+  DolphinBench's agent image, adds the two packages Hermes otherwise installs on first use, and
+  prints the image id for `DOLPHINBENCH_AGENT_IMAGE`.
+- **Variables.** Beyond the own agent's: `PAST_AGENT_API_URL` (past.dev as the agent's container
+  reaches it), `AZURE_FOUNDRY_API_KEY` (a local password between Hermes and `agent_relay.py`),
+  `AZURE_OPENAI_BASE_URL` (`agent_relay.py` as the container reaches it),
+  `DOLPHINBENCH_HERMES_SOURCE` (the Hermes checkout), `DOLPHINBENCH_AGENT_IMAGE`, and
+  `DOLPHINBENCH_DOCKER_CONTEXT` (the Docker context, needed on Docker Desktop for macOS).
+  `AGENT_RELAY_LOG`, `AGENT_RELAY_TAGS` and `JUDGE_RELAY_LOG` set where the relays write their cost
+  logs. The scripts also set `HERMES_MEMORY_SYNC_DRAIN_TIMEOUT_SECONDS` and `BUILDX_CONFIG`.
+- **Original run.** `scripts/full_run.sh` starts both relays, then runs prepare, ingest
+  (`ingest_parallel.py`), evaluate (`evaluate_parallel.py`, three workers) and package with
+  `scripts/hermes-past-full.yaml`, and resumes when run again. Its package stage stops on
+  DolphinBench's size limit.
+- **Rerun.** `scripts/run_toolsets_600.sh`, with `EXP_ARMS=toolsets-600` and
+  `EXP_TOOLSETS=dolphinbench-apps,memory,session_search` set, runs `scripts/run_subset.py` with
+  `scripts/exp-toolsets-600.yaml` on a copy of the finished run whose frozen profiles have the three
+  toolsets. `run_subset.py` runs the tests listed in `EXP_TESTS`, which the script sets to all 600.
+- **Toolsets.** This `hermes_past.py` uses DolphinBench's `harness.adapters.hermes.TOOLSETS`, which
+  include hermes-cli, as the ingestion and the first pass did. The rerun's official toolsets come
+  from `EXP_TOOLSETS` in `run_subset.py` and from the copy's edited profiles;
+  `scripts/hermes_past-segment2.diff` makes them the adapter's own default.
+
+The scripts use placeholders for this machine's paths and read the keys from four env files.
+[scripts/README.md](scripts/README.md) lists each file's variables by name and how the copy for the
+rerun was prepared.
+
+## Attribution and license
+
+DolphinBench is by Mem0, under the Apache License 2.0. This folder imports its runner, adapters and
+grader at run time, and the records in `results/` carry its histories, tests, app data and grading
+checks, which keep its terms. Hermes Agent is by Nous Research, under the MIT License. See
+[NOTICE.md](NOTICE.md). Past Corp's code here is MIT licensed, like the rest of this repository.

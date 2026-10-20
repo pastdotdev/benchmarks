@@ -1,0 +1,18 @@
+{
+  "harness": "Own agent",
+  "model": "GPT 5.6 Luna",
+  "memory": "past.dev",
+  "runtime": {
+    "provider": "openrouter",
+    "reasoning_effort": "high",
+    "max_turns": 60,
+    "ingestion_reasoning_effort": "none",
+    "recall_before_request": true
+  },
+  "personas": [
+    "Morgan",
+    "Alex",
+    "Riley"
+  ],
+  "tests_per_persona": 200
+}

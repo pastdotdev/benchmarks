@@ -1,0 +1,31 @@
+{
+  "harness": "Hermes",
+  "model": "GPT 5.6 Luna",
+  "memory": "past.dev",
+  "runtime": {
+    "provider": "azure-foundry",
+    "reasoning_effort": "high",
+    "context_length": 1050000,
+    "max_turns": 60,
+    "model_route": "OpenRouter openai/gpt-5.6-luna, provider azure, no fallback",
+    "toolsets": {
+      "ingestion": [
+        "hermes-cli",
+        "dolphinbench-apps",
+        "memory",
+        "session_search"
+      ],
+      "tests": [
+        "dolphinbench-apps",
+        "memory",
+        "session_search"
+      ]
+    }
+  },
+  "personas": [
+    "Morgan",
+    "Alex",
+    "Riley"
+  ],
+  "tests_per_persona": 200
+}

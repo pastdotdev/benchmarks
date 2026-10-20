@@ -1,0 +1,8 @@
+release: .
+output: tmp/exp-toolsets-600
+adapter: hermes_past:HermesPastAdapter
+options:
+  source_env: DOLPHINBENCH_HERMES_SOURCE
+  image_env: DOLPHINBENCH_AGENT_IMAGE
+  base_url_env: AZURE_OPENAI_BASE_URL
+  agent_api_url_env: PAST_AGENT_API_URL
