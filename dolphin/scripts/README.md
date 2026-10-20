@@ -1,9 +1,10 @@
 # Run scripts
 
 The scripts and run files of the two runs. Paths on the machine that ran them are replaced by
-placeholders; the header comments of `full_run.sh` and `run_toolsets_600.sh` and a comment in
-`run_subset.py` were edited for publication, and `run_toolsets_600.sh` has an unused helper left
-from an earlier experiment removed, with its default arm set to the one it was launched with.
+placeholders; the header comments of `full_run.sh`, `run_toolsets_600.sh` and `run_reextract_ar.sh`
+and a comment in `run_subset.py` were edited for publication, and `run_toolsets_600.sh` and
+`run_reextract_ar.sh` have an unused helper left from an earlier experiment removed, with their
+default arm set to the one each was launched with.
 Otherwise they are as they ran, except `full_run.sh`, which is its last version: it was edited on 2026-10-03
 at 16:05 CDT, after the original run's first three launches, and the earlier version is not kept.
 
@@ -16,12 +17,13 @@ at 16:05 CDT, after the original run's first three launches, and the earlier ver
 | File | |
 |---|---|
 | `full_run.sh` | The original Hermes + past.dev run: prepare, ingest (`ingest_parallel.py`), evaluate (`evaluate_parallel.py`, three workers) and package, resumable by running it again. It produced the ingestion and the first test pass (363 / 600). Its package stage stopped because the ingestion evidence exceeds DolphinBench's 512 MiB JSON limit. |
-| `run_toolsets_600.sh` | The second test pass (489 / 600), on a copy of that run |
+| `run_toolsets_600.sh` | The second test pass (489 / 600; Morgan's 173 are reported), on a copy of that run |
+| `run_reextract_ar.sh` | Alex's and Riley's 400 tests again (148 and 169, reported), on a copy of the second pass |
 | `run_subset.py` | Runs a chosen set of tests on a copy of a finished run |
-| `regrade_server_logged.py` | Written after the runs: grades the second pass's 183 tests with reconciled app calls again on the app server's own log (488 / 600) |
-| `hermes_past-segment2.diff` | The edit of `hermes_past.py` the second pass's last 440 tests ran with (see the README's disclosures) |
+| `hermes_past-segment2.diff` | The edit of `hermes_past.py` that the second pass's last 440 tests and the Alex and Riley rerun ran with (see the README's disclosures) |
 | `hermes-past-full.yaml` | The original Hermes run's run file |
 | `exp-toolsets-600.yaml` | The second test pass's run file |
+| `exp-reextract-ar.yaml` | The Alex and Riley rerun's run file |
 | `past-full.yaml` | The own agent's run file |
 
 ## Env files
@@ -58,3 +60,13 @@ held 3, the same as `full_run.sh` passes.
   per-turn log.
 - **Resumes.** The log shows the first launch, a restart after Docker Desktop froze, and a last
   resume with a copy of the script that sets `EXP_TESTS="riley:158"`, to grade that test.
+
+## The Alex and Riley rerun
+
+- **Copy.** `tmp/exp-reextract-ar` is an APFS clone of `tmp/exp-toolsets-600` with Alex's and
+  Riley's test records, grades and traces set aside, after their 59 pushes without memories were
+  processed again.
+- **Launch.** From `/path/to/dolphinbench`, with `EXP_ARMS=reextract-ar`, on 2026-10-19 from 15:32
+  to 17:52 CDT. `EXP_TESTS` lists Alex's and Riley's 400 tests, and the adapter edit in
+  `hermes_past-segment2.diff` gives every turn the three test toolsets. Riley's test 121 was set
+  aside after a recording failure and ran again.

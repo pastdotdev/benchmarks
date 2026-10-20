@@ -31,12 +31,12 @@ for verifying the saved results or running the benchmark.
 
 ## DolphinBench results
 
-Hermes Agent with GPT 5.6 Luna and past.dev as its memory passed **489 of 600** DolphinBench tests.
+Hermes Agent with GPT 5.6 Luna and past.dev as its memory passed **490 of 600** DolphinBench tests.
 In DolphinBench's official runs of the same agent and model, the other memories pass 355 to 424.
 
 | Memory | Passed | Morgan | Alex | Riley | Cost | Median latency | Files |
 |---|---:|---:|---:|---:|---:|---:|---|
-| **past.dev** | **489 / 600** | 173 | 151 | 165 | $196.56 | 46.3 s | [Run](dolphin/results/hermes-gpt-5.6-luna/) |
+| **past.dev** | **490 / 600** | 173 | 148 | 169 | $196.72 | 51.6 s | [Run](dolphin/results/hermes-gpt-5.6-luna/) |
 | Mem0 | 424 / 600 | 156 | 132 | 136 | $96.21 | 37.7 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/mem0) |
 | Hindsight | 417 / 600 | 144 | 127 | 146 | $84.65 | 55.3 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/hindsight) |
 | Honcho | 411 / 600 | 144 | 120 | 147 | $142.85 | 44.7 s | [Official](https://github.com/mem0ai/dolphinbench/tree/81cb6f8405b40a9e76089cef650806a80af06ea2/results/hermes/gpt-5.6-luna/honcho) |
