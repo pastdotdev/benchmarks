@@ -1,18 +1,47 @@
 # past.dev benchmarks
 
-The harnesses for the benchmarks reported on [past.dev/benchmarks](https://past.dev/benchmarks),
-published so anyone can read the method and run it. They use only past.dev's public API, the same
-calls you would make to add memory to your own product.
+Agent memory benchmarks you can check yourself. This repository holds the harnesses behind the
+results on [past.dev/benchmarks](https://past.dev/benchmarks), and every answer, piece of evidence
+and judge verdict from the published runs. They use only past.dev's public API, the same calls you
+would make to add memory to your own product.
+
+<p align="center"><img src="assets/results.svg" alt="BEAM: past.dev scores 92.08% at 100K tokens, 89.63% at 500K, 90.65% at 1M and 85.03% at 10M. DolphinBench: past.dev passes 490 of 600 tests; Mem0 424, Hindsight 417, Honcho 411, the built-in memory 394 and Supermemory 355 in DolphinBench's official runs." width="900"></p>
 
 | Folder | Benchmark |
 |---|---|
 | [`beam/`](beam) | [BEAM](https://arxiv.org/abs/2510.27246), long-conversation memory at 100K, 500K, 1M and 10M tokens |
 | [`dolphin/`](dolphin) | [DolphinBench](https://github.com/mem0ai/dolphinbench), Mem0's agent-memory benchmark: 600 tests over three users' histories, graded on the agent's app calls |
 
-To run one, you need a past.dev account ([sign up](https://sso.past.dev/sign-up)), its
+## Check the numbers without an account
+
+`verify.py` recomputes every BEAM score and the summary from the saved judge verdicts. It calls no
+memory API and no model, so it needs no key.
+
+```bash
+git clone https://github.com/pastdotdev/benchmarks.git
+cd benchmarks/beam
+pip install -r requirements.txt
+python verify.py results/100k        # or results/500k, results/1m, results/10m
+python verify.py --prompts           # our prompts match ExaBase's published file
+```
+
+The first command downloads the public BEAM dataset once, to confirm that every question has one
+record.
+
+## Run it yourself
+
+To run a benchmark again, you need a past.dev account ([sign up](https://sso.past.dev/sign-up)), its
 organization key, and an [OpenRouter](https://openrouter.ai) key. Each conversation gets its own
 project, and a new account allows fewer projects than a full split needs; the folder's README says
 how to run within that.
+
+## Run BEAM on another memory system
+
+The BEAM harness reaches past.dev only through [`beam/past_api.py`](beam/past_api.py). To run it on
+another memory system, replace that class with one that sets up a store for each conversation,
+ingests the turns and answers a recall. The dataset, the answer and judge prompts and the scoring
+stay as they are, so the scores compare. If you publish a port and its results, open an issue and we
+will link it here.
 
 ## BEAM results
 

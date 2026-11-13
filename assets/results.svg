@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" width="1200" height="440" role="img" aria-label="BEAM scores of past.dev at four sizes, and DolphinBench tests passed by six memories">
+<style>.bg{fill:#ffffff}.t{fill:#0a0a0a;font:600 22px "DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}.s{fill:#5a5a5a;font:400 14px "DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}.l{fill:#0a0a0a;font:500 15px "DM Sans",system-ui,-apple-system,"Segoe UI",sans-serif}.v{fill:#0a0a0a;font:600 15px "JetBrains Mono",ui-monospace,Menlo,monospace}.ax{stroke:#d9d9d9;stroke-width:1}.us{fill:#ea580c}.them{fill:#bdbdbd}@media (prefers-color-scheme: dark){.bg{fill:#0a0a0a}.t,.l,.v{fill:#ededed}.s{fill:#a1a1a1}.ax{stroke:#2e2e2e}.them{fill:#4a4a4a}.us{fill:#f97316}}</style>
+<rect class="bg" width="1200" height="440" rx="12"/>
+<text class="t" x="48" y="48">BEAM: past.dev score by conversation size</text>
+<text class="s" x="48" y="72">2,000 questions over 100 conversations, ExaBase answer and judge prompts</text>
+<rect class="us" x="75.5" y="116.6" width="70.0" height="239.4" rx="4"/>
+<text class="v" x="110.5" y="106.6" text-anchor="middle">92.08%</text>
+<text class="l" x="110.5" y="382" text-anchor="middle">100K tokens</text>
+<rect class="us" x="200.5" y="123.0" width="70.0" height="233.0" rx="4"/>
+<text class="v" x="235.5" y="113.0" text-anchor="middle">89.63%</text>
+<text class="l" x="235.5" y="382" text-anchor="middle">500K tokens</text>
+<rect class="us" x="325.5" y="120.3" width="70.0" height="235.7" rx="4"/>
+<text class="v" x="360.5" y="110.3" text-anchor="middle">90.65%</text>
+<text class="l" x="360.5" y="382" text-anchor="middle">1M tokens</text>
+<rect class="us" x="450.5" y="134.9" width="70.0" height="221.1" rx="4"/>
+<text class="v" x="485.5" y="124.9" text-anchor="middle">85.03%</text>
+<text class="l" x="485.5" y="382" text-anchor="middle">10M tokens</text>
+<line class="ax" x1="48" x2="548" y1="356" y2="356"/>
+<text class="t" x="640" y="48">DolphinBench: tests passed out of 600</text>
+<text class="s" x="640" y="72">Hermes Agent with GPT 5.6 Luna; other memories from DolphinBench's official runs</text>
+<text class="l" x="738" y="128.0" text-anchor="end" font-weight="700">past.dev</text>
+<rect class="us" x="750" y="104" width="359.3" height="38" rx="4"/>
+<text class="v" x="1117.3" y="128.0">490</text>
+<text class="l" x="738" y="172.0" text-anchor="end">Mem0</text>
+<rect class="them" x="750" y="148" width="310.9" height="38" rx="4"/>
+<text class="v" x="1068.9" y="172.0">424</text>
+<text class="l" x="738" y="216.0" text-anchor="end">Hindsight</text>
+<rect class="them" x="750" y="192" width="305.8" height="38" rx="4"/>
+<text class="v" x="1063.8" y="216.0">417</text>
+<text class="l" x="738" y="260.0" text-anchor="end">Honcho</text>
+<rect class="them" x="750" y="236" width="301.4" height="38" rx="4"/>
+<text class="v" x="1059.4" y="260.0">411</text>
+<text class="l" x="738" y="304.0" text-anchor="end">Built-in</text>
+<rect class="them" x="750" y="280" width="288.9" height="38" rx="4"/>
+<text class="v" x="1046.9" y="304.0">394</text>
+<text class="l" x="738" y="348.0" text-anchor="end">Supermemory</text>
+<rect class="them" x="750" y="324" width="260.3" height="38" rx="4"/>
+<text class="v" x="1018.3" y="348.0">355</text>
+<text class="s" x="48" y="418">Every answer, piece of evidence and judge verdict is in this repository. Check the scores with verify.py.</text>
+</svg>
